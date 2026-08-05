@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+.vscode-test/
+.idea/
+.vs/
+*.log
+.DS_Store
+unity-explorer.vsix
