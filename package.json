@@ -1,0 +1,257 @@
+{
+  "name": "unity-explorer",
+  "displayName": "Unity Explorer",
+  "description": "Unity Asset Tree, Meta File Sync & Package Manager for Antigravity IDE, VS Code, and Cursor",
+  "version": "1.0.0",
+  "publisher": "danielsarabuna",
+  "icon": "resources/icons/unity-logo.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielsarabuna/unity-explorer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danielsarabuna/unity-explorer/issues"
+  },
+  "homepage": "https://github.com/danielsarabuna/unity-explorer#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "unity",
+    "gamedev",
+    "meta-sync",
+    "explorer",
+    "rider",
+    "treeview",
+    "csharp"
+  ],
+  "activationEvents": [
+    "*",
+    "onView:unityExplorer",
+    "workspaceContains:Assets",
+    "workspaceContains:ProjectSettings/ProjectVersion.txt"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run build-fast",
+    "build": "node esbuild.js --production",
+    "build-fast": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "test:unit": "vitest run",
+    "test:integration": "vscode-test",
+    "test": "npm run lint && npm run test:unit",
+    "package": "node scripts/package-and-install.js",
+    "install-local": "node scripts/package-and-install.js"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "unityExplorerContainer",
+          "title": "Unity Explorer",
+          "icon": "resources/icons/unity-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "unityExplorerContainer": [
+        {
+          "id": "unityExplorer",
+          "name": "Unity Project",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Unity Explorer",
+      "properties": {
+        "unityExplorer.autoSyncMeta": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically rename, move, and delete .meta files alongside assets."
+        },
+        "unityExplorer.showMetaFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show .meta files explicitly in the explorer tree."
+        },
+        "unityExplorer.showLogs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Logs directory in the explorer tree."
+        },
+        "unityExplorer.showLibrary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Library directory in the explorer tree."
+        },
+        "unityExplorer.showTemp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Temp directory in the explorer tree."
+        },
+        "unityExplorer.showPackages": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display Unity Packages in the explorer tree."
+        },
+        "unityExplorer.showProjectSettings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display ProjectSettings in the explorer tree."
+        },
+        "unityExplorer.excludedPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.git/**",
+            "**/obj/**",
+            "**/bin/**"
+          ],
+          "description": "File patterns to exclude from the Unity Explorer tree."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "unityExplorer.refresh",
+        "title": "Refresh Unity Explorer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "unityExplorer.toggleVisibilitySettings",
+        "title": "Filter & View Options",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "unityExplorer.switchViewMode",
+        "title": "Switch View Mode",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "unityExplorer.createScript",
+        "title": "New C# Script",
+        "icon": "$(add)"
+      },
+      {
+        "command": "unityExplorer.createFolder",
+        "title": "New Folder",
+        "icon": "$(folder-active)"
+      },
+      {
+        "command": "unityExplorer.createShader",
+        "title": "New Shader",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "unityExplorer.createMaterial",
+        "title": "New Material",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "unityExplorer.createAsmdef",
+        "title": "New Assembly Definition",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "unityExplorer.rename",
+        "title": "Rename Asset (with .meta sync)",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "unityExplorer.delete",
+        "title": "Delete Asset (with .meta sync)",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "unityExplorer.revealInFinder",
+        "title": "Reveal in Finder / Explorer",
+        "icon": "$(folder-opened)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "unityExplorer.refresh",
+          "when": "view == unityExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "unityExplorer.toggleVisibilitySettings",
+          "when": "view == unityExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "unityExplorer.switchViewMode",
+          "when": "view == unityExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "unityExplorer.createScript",
+          "when": "view == unityExplorer",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "unityExplorer.createScript",
+          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "unityExplorer.createFolder",
+          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "unityExplorer.createShader",
+          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "unityExplorer.createMaterial",
+          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "group": "1_create@4"
+        },
+        {
+          "command": "unityExplorer.createAsmdef",
+          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "group": "1_create@5"
+        },
+        {
+          "command": "unityExplorer.rename",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityMetaFile)",
+          "group": "2_modify@1"
+        },
+        {
+          "command": "unityExplorer.delete",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityMetaFile)",
+          "group": "2_modify@2"
+        },
+        {
+          "command": "unityExplorer.revealInFinder",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityAssetsRoot || viewItem == unityMetaFile)",
+          "group": "3_utility@1"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}
