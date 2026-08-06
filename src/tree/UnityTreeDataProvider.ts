@@ -80,7 +80,14 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
 
   async getChildren(element?: UnityTreeItem): Promise<UnityTreeItem[]> {
     if (!this.workspaceRoot) {
-      return [];
+      const fallback = new UnityTreeItem(
+        'No Unity Workspace Opened',
+        vscode.Uri.file('/'),
+        'folder',
+        vscode.TreeItemCollapsibleState.None
+      );
+      fallback.tooltip = 'Open a Unity project folder in VS Code to activate Unity Explorer';
+      return [fallback];
     }
 
     // ═══ MODE: SOLUTION VIEW ═══

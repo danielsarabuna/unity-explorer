@@ -15,13 +15,9 @@ import { SearchEngine } from './search/SearchEngine';
 import { SearchPanelProvider } from './search/SearchPanelProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (!workspaceRoot) return;
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
 
-  await detectAndSetUnityContext(workspaceRoot);
-  await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
-
-  const scopeResolver = new ScopeResolver(workspaceRoot);
+  const scopeResolver = workspaceRoot ? new ScopeResolver(workspaceRoot) : undefined;
   const metaSyncEngine = new MetaSyncEngine();
   const packageManager = new PackageManager(workspaceRoot);
   const treeDataProvider = new UnityTreeDataProvider(workspaceRoot, packageManager, scopeResolver);
@@ -32,6 +28,14 @@ export async function activate(context: vscode.ExtensionContext) {
     dragAndDropController,
     canSelectMany: true
   });
+
+  if (!workspaceRoot) {
+    context.subscriptions.push(treeView);
+    return;
+  }
+
+  await detectAndSetUnityContext(workspaceRoot);
+  await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
 
   // Search Engine Initialization
   const symbolIndexer = new CSharpSymbolIndexer(workspaceRoot, scopeResolver);
