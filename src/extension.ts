@@ -29,32 +29,29 @@ export async function activate(context: vscode.ExtensionContext) {
     canSelectMany: true
   });
 
-  if (!workspaceRoot) {
-    context.subscriptions.push(treeView);
-    return;
-  }
-
-  await detectAndSetUnityContext(workspaceRoot);
-  await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
-
   // Search Engine Initialization
-  const symbolIndexer = new CSharpSymbolIndexer(workspaceRoot, scopeResolver);
-  const fileIndexer = new FileIndexer(workspaceRoot, []);
-  const searchEngine = new SearchEngine(symbolIndexer, fileIndexer, scopeResolver);
-  const searchPanel = new SearchPanelProvider(context.extensionUri, searchEngine, symbolIndexer, scopeResolver);
+  const symbolIndexer = workspaceRoot && scopeResolver ? new CSharpSymbolIndexer(workspaceRoot, scopeResolver) : undefined;
+  const fileIndexer = workspaceRoot ? new FileIndexer(workspaceRoot, []) : undefined;
+  const searchEngine = (symbolIndexer && fileIndexer && scopeResolver) ? new SearchEngine(symbolIndexer, fileIndexer, scopeResolver) : undefined;
+  const searchPanel = searchEngine ? new SearchPanelProvider(context.extensionUri, searchEngine, symbolIndexer!, scopeResolver!) : undefined;
 
-  // Background indexing
-  vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Window, title: 'Unity: Indexing C# symbols…' },
-    async () => {
-      await scopeResolver.parseSolution();
-      await symbolIndexer.buildFullIndex(false);
-      await fileIndexer.buildIndex(false);
+  if (workspaceRoot) {
+    await detectAndSetUnityContext(workspaceRoot);
+    await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
+
+    if (scopeResolver && symbolIndexer && fileIndexer) {
+      vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Window, title: 'Unity: Indexing C# symbols…' },
+        async () => {
+          await scopeResolver.parseSolution();
+          await symbolIndexer.buildFullIndex(false);
+          await fileIndexer.buildIndex(false);
+        }
+      );
+      setupFileSystemWatcher(context, workspaceRoot, treeDataProvider);
+      setupSearchIndexWatcher(context, workspaceRoot, symbolIndexer, fileIndexer);
     }
-  );
-
-  setupFileSystemWatcher(context, workspaceRoot, treeDataProvider);
-  setupSearchIndexWatcher(context, workspaceRoot, symbolIndexer, fileIndexer);
+  }
 
   // Register WillRenameFiles handler for external / editor file renames
   context.subscriptions.push(
@@ -80,10 +77,10 @@ export async function activate(context: vscode.ExtensionContext) {
     treeView,
     searchPanel,
 
-    vscode.commands.registerCommand('unityExplorer.searchEverywhere', () => searchPanel.show()),
-    vscode.commands.registerCommand('unityExplorer.searchTypes', () => searchPanel.show('types')),
-    vscode.commands.registerCommand('unityExplorer.searchMembers', () => searchPanel.show('members')),
-    vscode.commands.registerCommand('unityExplorer.searchFiles', () => searchPanel.show('files')),
+    vscode.commands.registerCommand('unityExplorer.searchEverywhere', () => searchPanel?.show()),
+    vscode.commands.registerCommand('unityExplorer.searchTypes', () => searchPanel?.show('types')),
+    vscode.commands.registerCommand('unityExplorer.searchMembers', () => searchPanel?.show('members')),
+    vscode.commands.registerCommand('unityExplorer.searchFiles', () => searchPanel?.show('files')),
 
     vscode.commands.registerCommand('unityExplorer.refresh', () => {
       treeDataProvider.refresh();
