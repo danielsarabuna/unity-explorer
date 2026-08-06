@@ -1,8 +1,8 @@
 {
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
-  "description": "Unity Asset Tree, Meta File Sync & Package Manager for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.1.2",
+  "description": "Unity Asset Tree, Meta File Sync & Rider-style Search Engine for Antigravity IDE, VS Code, and Cursor",
+  "version": "1.2.0",
   "publisher": "antigravity",
   "license": "MIT",
   "repository": {
@@ -67,26 +67,6 @@
           "default": true,
           "description": "Automatically rename, move, and delete .meta files alongside assets."
         },
-        "unityExplorer.showMetaFiles": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display raw .meta files in the explorer tree."
-        },
-        "unityExplorer.showLogs": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Unity engine Logs/ folder."
-        },
-        "unityExplorer.showLibrary": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Unity cache Library/ folder."
-        },
-        "unityExplorer.showTemp": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Unity build Temp/ folder."
-        },
         "unityExplorer.showPackages": {
           "type": "boolean",
           "default": true,
@@ -96,22 +76,6 @@
           "type": "boolean",
           "default": true,
           "description": "Display ProjectSettings in the explorer tree."
-        },
-        "unityExplorer.excludedPatterns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "**/*.meta",
-            "**/.git/**",
-            "**/Library/**",
-            "**/Temp/**",
-            "**/Logs/**",
-            "**/obj/**",
-            "**/bin/**"
-          ],
-          "description": "File patterns to exclude from the Unity Explorer tree."
         }
       }
     },
@@ -140,16 +104,6 @@
         "command": "unityExplorer.refresh",
         "title": "Refresh Explorer",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "unityExplorer.toggleVisibility",
-        "title": "Toggle Explorer Visibility Settings",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "unityExplorer.switchViewMode",
-        "title": "Switch View Mode",
-        "icon": "$(arrow-swap)"
       },
       {
         "command": "unityExplorer.createScript",
@@ -211,21 +165,6 @@
           "command": "unityExplorer.refresh",
           "when": "view == unityExplorer",
           "group": "navigation@2"
-        },
-        {
-          "command": "unityExplorer.toggleVisibility",
-          "when": "view == unityExplorer",
-          "group": "navigation@3"
-        },
-        {
-          "command": "unityExplorer.switchViewMode",
-          "when": "view == unityExplorer",
-          "group": "navigation@4"
-        },
-        {
-          "command": "unityExplorer.createScript",
-          "when": "view == unityExplorer",
-          "group": "navigation@5"
         }
       ],
       "view/item/context": [
