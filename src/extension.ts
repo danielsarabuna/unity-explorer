@@ -6,8 +6,13 @@ import { UnityTreeItem } from './tree/UnityTreeItem';
 import { MetaSyncEngine } from './sync/MetaSyncEngine';
 import { PackageManager } from './packages/PackageManager';
 import { TemplateManager } from './templates/TemplateManager';
-import { setupFileSystemWatcher } from './watchers/UnityFileSystemWatcher';
+import { setupFileSystemWatcher, setupSearchIndexWatcher } from './watchers/UnityFileSystemWatcher';
 import { detectAndSetUnityContext } from './utils/contextUtils';
+import { ScopeResolver } from './search/ScopeResolver';
+import { CSharpSymbolIndexer } from './search/CSharpSymbolIndexer';
+import { FileIndexer } from './search/FileIndexer';
+import { SearchEngine } from './search/SearchEngine';
+import { SearchPanelProvider } from './search/SearchPanelProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -26,7 +31,25 @@ export async function activate(context: vscode.ExtensionContext) {
     canSelectMany: true
   });
 
+  // Search Engine Initialization
+  const scopeResolver = new ScopeResolver(workspaceRoot);
+  const symbolIndexer = new CSharpSymbolIndexer(workspaceRoot, scopeResolver);
+  const fileIndexer = new FileIndexer(workspaceRoot, []);
+  const searchEngine = new SearchEngine(symbolIndexer, fileIndexer, scopeResolver);
+  const searchPanel = new SearchPanelProvider(context.extensionUri, searchEngine, symbolIndexer, scopeResolver);
+
+  // Background indexing
+  vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Window, title: 'Unity: Indexing C# symbols…' },
+    async () => {
+      await scopeResolver.parseSolution();
+      await symbolIndexer.buildFullIndex(false);
+      await fileIndexer.buildIndex(false);
+    }
+  );
+
   setupFileSystemWatcher(context, workspaceRoot, treeDataProvider);
+  setupSearchIndexWatcher(context, workspaceRoot, symbolIndexer, fileIndexer);
 
   // Register WillRenameFiles handler for external / editor file renames
   context.subscriptions.push(
@@ -50,68 +73,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register Commands
   context.subscriptions.push(
     treeView,
+    searchPanel,
+
+    vscode.commands.registerCommand('unityExplorer.searchEverywhere', () => searchPanel.show()),
+    vscode.commands.registerCommand('unityExplorer.searchTypes', () => searchPanel.show('types')),
+    vscode.commands.registerCommand('unityExplorer.searchMembers', () => searchPanel.show('members')),
+    vscode.commands.registerCommand('unityExplorer.searchFiles', () => searchPanel.show('files')),
 
     vscode.commands.registerCommand('unityExplorer.refresh', () => {
       treeDataProvider.refresh();
-    }),
-
-    vscode.commands.registerCommand('unityExplorer.toggleVisibilitySettings', async () => {
-      const config = vscode.workspace.getConfiguration('unityExplorer');
-      const showMeta = config.get<boolean>('showMetaFiles', false);
-      const showLogs = config.get<boolean>('showLogs', false);
-      const showLibrary = config.get<boolean>('showLibrary', false);
-      const showTemp = config.get<boolean>('showTemp', false);
-      const showPackages = config.get<boolean>('showPackages', true);
-      const showProjectSettings = config.get<boolean>('showProjectSettings', true);
-
-      const items: (vscode.QuickPickItem & { key: string; current: boolean })[] = [
-        {
-          label: `${showMeta ? '$(check)' : '$(blank)'} Show .meta Files`,
-          description: 'Display raw .meta files in the explorer tree',
-          key: 'showMetaFiles',
-          current: showMeta
-        },
-        {
-          label: `${showLogs ? '$(check)' : '$(blank)'} Show Logs Folder`,
-          description: 'Display Unity engine Logs/ folder',
-          key: 'showLogs',
-          current: showLogs
-        },
-        {
-          label: `${showLibrary ? '$(check)' : '$(blank)'} Show Library Folder`,
-          description: 'Display Unity cache Library/ folder',
-          key: 'showLibrary',
-          current: showLibrary
-        },
-        {
-          label: `${showTemp ? '$(check)' : '$(blank)'} Show Temp Folder`,
-          description: 'Display Unity build Temp/ folder',
-          key: 'showTemp',
-          current: showTemp
-        },
-        {
-          label: `${showPackages ? '$(check)' : '$(blank)'} Show Packages`,
-          description: 'Display Unity Package Manager packages',
-          key: 'showPackages',
-          current: showPackages
-        },
-        {
-          label: `${showProjectSettings ? '$(check)' : '$(blank)'} Show ProjectSettings`,
-          description: 'Display Unity engine settings folder',
-          key: 'showProjectSettings',
-          current: showProjectSettings
-        }
-      ];
-
-      const selected = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Toggle Explorer Visibility Settings'
-      });
-
-      if (selected) {
-        await config.update(selected.key, !selected.current, vscode.ConfigurationTarget.Workspace);
-        treeDataProvider.loadConfiguration();
-        treeDataProvider.refresh();
-      }
     }),
 
     vscode.commands.registerCommand('unityExplorer.switchViewMode', async () => {

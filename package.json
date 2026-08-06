@@ -2,18 +2,13 @@
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
   "description": "Unity Asset Tree, Meta File Sync & Package Manager for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.0.0",
-  "publisher": "danielsarabuna",
-  "icon": "resources/icons/unity-logo.png",
+  "version": "1.1.0",
+  "publisher": "antigravity",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/danielsarabuna/unity-explorer.git"
+    "url": "https://github.com/antigravity/unity-explorer"
   },
-  "bugs": {
-    "url": "https://github.com/danielsarabuna/unity-explorer/issues"
-  },
-  "homepage": "https://github.com/danielsarabuna/unity-explorer#readme",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -31,23 +26,19 @@
     "csharp"
   ],
   "activationEvents": [
-    "*",
-    "onView:unityExplorer",
     "workspaceContains:Assets",
     "workspaceContains:ProjectSettings/ProjectVersion.txt"
   ],
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run build-fast",
-    "build": "node esbuild.js --production",
     "build-fast": "node esbuild.js --production",
     "watch": "node esbuild.js --watch",
     "lint": "eslint src --ext ts",
     "test:unit": "vitest run",
     "test:integration": "vscode-test",
     "test": "npm run lint && npm run test:unit",
-    "package": "node scripts/package-and-install.js",
-    "install-local": "node scripts/package-and-install.js"
+    "package": "vsce package --no-dependencies"
   },
   "contributes": {
     "viewsContainers": {
@@ -76,26 +67,6 @@
           "default": true,
           "description": "Automatically rename, move, and delete .meta files alongside assets."
         },
-        "unityExplorer.showMetaFiles": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show .meta files explicitly in the explorer tree."
-        },
-        "unityExplorer.showLogs": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Logs directory in the explorer tree."
-        },
-        "unityExplorer.showLibrary": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Library directory in the explorer tree."
-        },
-        "unityExplorer.showTemp": {
-          "type": "boolean",
-          "default": false,
-          "description": "Display Temp directory in the explorer tree."
-        },
         "unityExplorer.showPackages": {
           "type": "boolean",
           "default": true,
@@ -112,7 +83,11 @@
             "type": "string"
           },
           "default": [
+            "**/*.meta",
             "**/.git/**",
+            "**/Library/**",
+            "**/Temp/**",
+            "**/Logs/**",
             "**/obj/**",
             "**/bin/**"
           ],
@@ -122,19 +97,29 @@
     },
     "commands": [
       {
+        "command": "unityExplorer.searchEverywhere",
+        "title": "Unity: Search Everywhere",
+        "icon": "$(search)"
+      },
+      {
+        "command": "unityExplorer.searchTypes",
+        "title": "Unity: Search Types",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "unityExplorer.searchMembers",
+        "title": "Unity: Search Members",
+        "icon": "$(symbol-field)"
+      },
+      {
+        "command": "unityExplorer.searchFiles",
+        "title": "Unity: Search Files",
+        "icon": "$(file)"
+      },
+      {
         "command": "unityExplorer.refresh",
         "title": "Refresh Unity Explorer",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "unityExplorer.toggleVisibilitySettings",
-        "title": "Filter & View Options",
-        "icon": "$(filter)"
-      },
-      {
-        "command": "unityExplorer.switchViewMode",
-        "title": "Switch View Mode",
-        "icon": "$(arrow-swap)"
       },
       {
         "command": "unityExplorer.createScript",
@@ -172,32 +157,45 @@
         "icon": "$(trash)"
       },
       {
+        "command": "unityExplorer.switchViewMode",
+        "title": "Switch View Mode",
+        "icon": "$(arrow-swap)"
+      },
+      {
         "command": "unityExplorer.revealInFinder",
         "title": "Reveal in Finder / Explorer",
         "icon": "$(folder-opened)"
       }
     ],
+    "keybindings": [
+      {
+        "command": "unityExplorer.searchEverywhere",
+        "key": "ctrl+alt+shift+f",
+        "mac": "cmd+alt+shift+f",
+        "when": "unityExplorer:isUnityProject"
+      }
+    ],
     "menus": {
       "view/title": [
+        {
+          "command": "unityExplorer.searchEverywhere",
+          "when": "view == unityExplorer",
+          "group": "navigation@0"
+        },
         {
           "command": "unityExplorer.refresh",
           "when": "view == unityExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "unityExplorer.toggleVisibilitySettings",
+          "command": "unityExplorer.switchViewMode",
           "when": "view == unityExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "unityExplorer.switchViewMode",
-          "when": "view == unityExplorer",
-          "group": "navigation@3"
-        },
-        {
           "command": "unityExplorer.createScript",
           "when": "view == unityExplorer",
-          "group": "navigation@4"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -228,17 +226,17 @@
         },
         {
           "command": "unityExplorer.rename",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityMetaFile)",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder)",
           "group": "2_modify@1"
         },
         {
           "command": "unityExplorer.delete",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityMetaFile)",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder)",
           "group": "2_modify@2"
         },
         {
           "command": "unityExplorer.revealInFinder",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityAssetsRoot || viewItem == unityMetaFile)",
+          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "3_utility@1"
         }
       ]

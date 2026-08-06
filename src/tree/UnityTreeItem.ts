@@ -5,15 +5,11 @@ export type UnityItemType =
   | 'assetsRoot'
   | 'folder' 
   | 'asset' 
-  | 'metaFile'
   | 'packageRoot' 
   | 'package' 
   | 'packageAsset' 
   | 'packageFolder'
-  | 'projectSettingsRoot'
-  | 'logsRoot'
-  | 'libraryRoot'
-  | 'tempRoot';
+  | 'projectSettingsRoot';
 
 export interface PackageMetaInfo {
   name: string;
@@ -44,7 +40,7 @@ export class UnityTreeItem extends vscode.TreeItem {
     this.contextValue = this.deriveContextValue();
     this.iconPath = this.deriveIcon();
     
-    if (!isReadOnly && (itemType === 'asset' || itemType === 'packageAsset' || itemType === 'metaFile')) {
+    if (!isReadOnly && (itemType === 'asset' || itemType === 'packageAsset')) {
       this.command = {
         command: 'vscode.open',
         title: 'Open File',
@@ -61,13 +57,9 @@ export class UnityTreeItem extends vscode.TreeItem {
       case 'assetsRoot': return 'unityAssetsRoot';
       case 'folder': return 'unityFolder';
       case 'asset': return 'unityAsset';
-      case 'metaFile': return 'unityMetaFile';
       case 'packageRoot': return 'unityPackageRoot';
       case 'package': return 'unityPackage';
       case 'projectSettingsRoot': return 'unityProjectSettingsRoot';
-      case 'logsRoot': return 'unityLogsRoot';
-      case 'libraryRoot': return 'unityLibraryRoot';
-      case 'tempRoot': return 'unityTempRoot';
       default: return 'unityAsset';
     }
   }
@@ -82,17 +74,8 @@ export class UnityTreeItem extends vscode.TreeItem {
     if (this.itemType === 'projectSettingsRoot') {
       return new vscode.ThemeIcon('settings-gear');
     }
-    if (this.itemType === 'logsRoot') {
-      return new vscode.ThemeIcon('output');
-    }
-    if (this.itemType === 'libraryRoot' || this.itemType === 'tempRoot') {
-      return new vscode.ThemeIcon('server-environment');
-    }
     if (this.itemType === 'package') {
       return new vscode.ThemeIcon('package');
-    }
-    if (this.itemType === 'metaFile') {
-      return new vscode.ThemeIcon('key');
     }
     if (this.itemType === 'folder' || this.itemType === 'packageFolder') {
       const folderName = path.basename(this.uri.fsPath).toLowerCase();
@@ -122,7 +105,6 @@ export class UnityTreeItem extends vscode.TreeItem {
       case '.ogg': return new vscode.ThemeIcon('device-camera-video');
       case '.json': 
       case '.asset': return new vscode.ThemeIcon('json');
-      case '.meta': return new vscode.ThemeIcon('key');
       default: return vscode.ThemeIcon.File;
     }
   }

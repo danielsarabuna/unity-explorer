@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Search</title>
+  <!-- INLINE_CSS -->
+</head>
+<body>
+  <div class="search-container">
+    <!-- Header -->
+    <div class="search-header">
+      <div class="search-input-row">
+        <span class="search-icon">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search classes, fields, methods… (PCon → PlayerController)" autofocus />
+        
+        <div class="file-mask-group">
+          <input type="checkbox" id="fileMaskEnabled" />
+          <label for="fileMaskEnabled">File mask:</label>
+          <select id="fileMaskSelect" disabled>
+            <option value="*.cs">*.cs</option>
+            <option value="*.shader">*.shader</option>
+            <option value="*.asmdef">*.asmdef</option>
+            <option value="*.cs;*.shader">*.cs;*.shader</option>
+            <option value="*.*">*.*</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="options-row">
+        <button class="toggle-btn" id="btnRegex" title="Regular Expression (Alt+R)">.*</button>
+        <button class="toggle-btn" id="btnCase" title="Match Case (Alt+C)">Cc</button>
+        <button class="toggle-btn" id="btnWord" title="Whole Word (Alt+W)">W</button>
+      </div>
+
+      <!-- Row 1: Location Scope (WHERE) -->
+      <div class="scope-row location-row">
+        <span class="scope-label">📍 Scope:</span>
+        <div class="scope-tabs">
+          <button class="scope-tab active" data-location="solution">Solution</button>
+          <button class="scope-tab" data-location="project">
+            Project
+            <select id="projectSelect" class="scope-dropdown" style="display:none;"></select>
+          </button>
+          <button class="scope-tab" data-location="directory">
+            Directory
+            <span id="directoryPathDisplay" class="scope-path-display"></span>
+            <button id="btnPickDir" class="scope-pick-btn" style="display:none;">…</button>
+          </button>
+          <button class="scope-tab" data-location="scope">
+            Custom
+            <select id="scopeSelect" class="scope-dropdown" style="display:none;"></select>
+          </button>
+        </div>
+
+        <label class="checkbox-label include-non-project">
+          <input type="checkbox" id="includeNonProject" /> Include non-project items
+        </label>
+      </div>
+
+      <!-- Row 2: Kind Filter (WHAT) -->
+      <div class="scope-row kind-row">
+        <span class="scope-label">🔎 Filter:</span>
+        <div class="kind-tabs">
+          <button class="kind-tab active" data-kind="all">All</button>
+          <button class="kind-tab" data-kind="types">Types</button>
+          <button class="kind-tab" data-kind="members">Members</button>
+          <button class="kind-tab" data-kind="files">Files</button>
+          <button class="kind-tab" data-kind="serialized">Serialized</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Area -->
+    <div class="results-container" id="resultsList">
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p class="empty-title">Type search query to find symbols</p>
+        <p class="empty-hint">CamelHump: PCon → PlayerController · Filter: t:class f:field m:method</p>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span id="statusText">Ready</span>
+      <button id="btnOpenEditor" class="status-btn" disabled>Open in Editor</button>
+    </div>
+  </div>
+
+  <!-- INLINE_JS -->
+</body>
+</html>

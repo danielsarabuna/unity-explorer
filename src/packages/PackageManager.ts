@@ -37,6 +37,7 @@ export class PackageManager {
   }
 
   private async resolvePackageLocation(pkgName: string, versionOrPath: string): Promise<ResolvedPackage | undefined> {
+    // 1. Local Package: "file:../my-package" or "file:packages/my-package"
     if (versionOrPath.startsWith('file:')) {
       const relativePath = versionOrPath.replace('file:', '');
       const localPath = path.resolve(this.workspaceRoot, 'Packages', relativePath);
@@ -46,17 +47,20 @@ export class PackageManager {
       }
     }
 
+    // 2. Embedded Package directly in Packages/<pkgName>
     const embeddedUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Packages', pkgName));
     if (await this.exists(embeddedUri)) {
       return { name: pkgName, version: 'embedded', rootUri: embeddedUri, sourceType: 'embedded' };
     }
 
+    // 3. Project Library PackageCache Resolution: Library/PackageCache/com.unity.foo@1.0.0
     const packageCacheDir = path.join(this.workspaceRoot, 'Library', 'PackageCache');
     const cachedPkgUri = await this.findMatchingInPackageCache(packageCacheDir, pkgName);
     if (cachedPkgUri) {
       return { name: pkgName, version: versionOrPath, rootUri: cachedPkgUri, sourceType: 'registry' };
     }
 
+    // 4. Fallback to Global Unity Package Cache
     const globalCacheUri = await this.findInGlobalCache(pkgName, versionOrPath);
     if (globalCacheUri) {
       return { name: pkgName, version: versionOrPath, rootUri: globalCacheUri, sourceType: 'registry' };

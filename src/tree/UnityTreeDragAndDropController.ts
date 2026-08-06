@@ -14,6 +14,7 @@ export class UnityTreeDragAndDropController implements vscode.TreeDragAndDropCon
     dataTransfer: vscode.DataTransfer,
     token: vscode.CancellationToken
   ): Promise<void> {
+    // Prevent dragging read-only package files
     const validSources = source.filter(s => !s.isReadOnly && s.itemType !== 'packageRoot');
     if (validSources.length === 0) return;
 

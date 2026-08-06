@@ -1,9 +1,8 @@
 node_modules/
 dist/
 out/
+*.vsix
 .vscode-test/
 .idea/
 .vs/
 *.log
-.DS_Store
-unity-explorer.vsix
