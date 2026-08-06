@@ -20,9 +20,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await detectAndSetUnityContext(workspaceRoot);
 
+  const scopeResolver = new ScopeResolver(workspaceRoot);
   const metaSyncEngine = new MetaSyncEngine();
   const packageManager = new PackageManager(workspaceRoot);
-  const treeDataProvider = new UnityTreeDataProvider(workspaceRoot, packageManager);
+  const treeDataProvider = new UnityTreeDataProvider(workspaceRoot, packageManager, scopeResolver);
   const dragAndDropController = new UnityTreeDragAndDropController(metaSyncEngine);
 
   const treeView = vscode.window.createTreeView('unityExplorer', {
@@ -32,7 +33,6 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   // Search Engine Initialization
-  const scopeResolver = new ScopeResolver(workspaceRoot);
   const symbolIndexer = new CSharpSymbolIndexer(workspaceRoot, scopeResolver);
   const fileIndexer = new FileIndexer(workspaceRoot, []);
   const searchEngine = new SearchEngine(symbolIndexer, fileIndexer, scopeResolver);
@@ -152,21 +152,37 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('unityExplorer.switchViewMode', async () => {
+      const currentMode = treeDataProvider.getViewMode();
       const selected = await vscode.window.showQuickPick(
         [
-          { label: '$(symbol-namespace) Unity View', description: 'Clean Unity domain tree (Assets, Packages, Settings)', mode: 'unity' },
-          { label: '$(files) File System View', description: 'Raw disk file tree', mode: 'allFiles' },
-          { label: '$(project) Solution View', description: 'C# Assemblies & Solution references', mode: 'solution' }
+          {
+            label: `${currentMode === 'unity' ? '$(check)' : '$(blank)'} Unity View`,
+            description: 'Clean Unity domain tree (Assets, Packages, Settings)',
+            mode: 'unity'
+          },
+          {
+            label: `${currentMode === 'solution' ? '$(check)' : '$(blank)'} Solution View`,
+            description: 'C# Assemblies (.asmdef & .csproj) & file mappings',
+            mode: 'solution'
+          },
+          {
+            label: `${currentMode === 'allFiles' ? '$(check)' : '$(blank)'} All Files View`,
+            description: 'Raw workspace directory tree',
+            mode: 'allFiles'
+          }
         ],
         { placeHolder: 'Select View Mode' }
       );
 
       if (!selected) return;
 
-      if (selected.mode === 'allFiles') {
-        await vscode.commands.executeCommand('workbench.view.explorer');
+      treeDataProvider.setViewMode(selected.mode as any);
+      if (selected.mode === 'unity') {
+        treeView.title = 'Unity Project';
+      } else if (selected.mode === 'solution') {
+        treeView.title = 'C# Solution View';
       } else {
-        vscode.window.showInformationMessage(`Switched to ${selected.label}`);
+        treeView.title = 'All Workspace Files';
       }
     }),
 

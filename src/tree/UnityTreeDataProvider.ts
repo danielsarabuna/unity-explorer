@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { UnityTreeItem, UnityItemType } from './UnityTreeItem';
 import { PackageManager } from '../packages/PackageManager';
+import { ScopeResolver } from '../search/ScopeResolver';
+
+export type ViewMode = 'unity' | 'solution' | 'allFiles';
 
 export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<UnityTreeItem | undefined | null | void> = 
@@ -11,6 +14,8 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
 
   private refreshDebounceTimer?: NodeJS.Timeout;
   
+  private viewMode: ViewMode = 'unity';
+
   private showMetaFiles: boolean = false;
   private showLogs: boolean = false;
   private showLibrary: boolean = false;
@@ -20,7 +25,8 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
 
   constructor(
     private readonly workspaceRoot: string,
-    private readonly packageManager: PackageManager
+    private readonly packageManager: PackageManager,
+    private readonly scopeResolver?: ScopeResolver
   ) {
     this.loadConfiguration();
     vscode.workspace.onDidChangeConfiguration(e => {
@@ -29,6 +35,15 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
         this.refresh();
       }
     });
+  }
+
+  public setViewMode(mode: ViewMode): void {
+    this.viewMode = mode;
+    this.refresh();
+  }
+
+  public getViewMode(): ViewMode {
+    return this.viewMode;
   }
 
   public getExcludedPatterns(): string[] {
@@ -68,97 +83,71 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       return [];
     }
 
-    // Root nodes: Assets + Packages + ProjectSettings + optional (Library, Logs, Temp)
+    // ═══ MODE: SOLUTION VIEW ═══
+    if (this.viewMode === 'solution') {
+      return this.getSolutionChildren(element);
+    }
+
+    // ═══ MODE: ALL FILES VIEW ═══
+    if (this.viewMode === 'allFiles') {
+      return this.getAllFilesChildren(element);
+    }
+
+    // ═══ MODE: UNITY VIEW (Default) ═══
+    return this.getUnityViewChildren(element);
+  }
+
+  // ─── Unity View Mode ───
+  private async getUnityViewChildren(element?: UnityTreeItem): Promise<UnityTreeItem[]> {
     if (!element) {
       const items: UnityTreeItem[] = [];
       
-      // 1. Assets Folder
       const assetsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Assets'));
       try {
         await vscode.workspace.fs.stat(assetsUri);
-        items.push(new UnityTreeItem(
-          'Assets',
-          assetsUri,
-          'assetsRoot',
-          vscode.TreeItemCollapsibleState.Expanded
-        ));
-      } catch {
-        // Assets folder missing
-      }
+        items.push(new UnityTreeItem('Assets', assetsUri, 'assetsRoot', vscode.TreeItemCollapsibleState.Expanded));
+      } catch {}
 
-      // 2. Packages Folder
       if (this.showPackages) {
         const packagesUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Packages'));
-        items.push(new UnityTreeItem(
-          'Packages',
-          packagesUri,
-          'packageRoot',
-          vscode.TreeItemCollapsibleState.Collapsed
-        ));
+        items.push(new UnityTreeItem('Packages', packagesUri, 'packageRoot', vscode.TreeItemCollapsibleState.Collapsed));
       }
 
-      // 3. ProjectSettings Folder
       if (this.showProjectSettings) {
         const settingsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'ProjectSettings'));
         try {
           await vscode.workspace.fs.stat(settingsUri);
-          items.push(new UnityTreeItem(
-            'ProjectSettings',
-            settingsUri,
-            'projectSettingsRoot',
-            vscode.TreeItemCollapsibleState.Collapsed
-          ));
-        } catch {
-          // ProjectSettings missing
-        }
+          items.push(new UnityTreeItem('ProjectSettings', settingsUri, 'projectSettingsRoot', vscode.TreeItemCollapsibleState.Collapsed));
+        } catch {}
       }
 
-      // 4. Library Folder
       if (this.showLibrary) {
         const libraryUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Library'));
         try {
           await vscode.workspace.fs.stat(libraryUri);
-          items.push(new UnityTreeItem(
-            'Library',
-            libraryUri,
-            'folder',
-            vscode.TreeItemCollapsibleState.Collapsed
-          ));
+          items.push(new UnityTreeItem('Library', libraryUri, 'folder', vscode.TreeItemCollapsibleState.Collapsed));
         } catch {}
       }
 
-      // 5. Logs Folder
       if (this.showLogs) {
         const logsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Logs'));
         try {
           await vscode.workspace.fs.stat(logsUri);
-          items.push(new UnityTreeItem(
-            'Logs',
-            logsUri,
-            'folder',
-            vscode.TreeItemCollapsibleState.Collapsed
-          ));
+          items.push(new UnityTreeItem('Logs', logsUri, 'folder', vscode.TreeItemCollapsibleState.Collapsed));
         } catch {}
       }
 
-      // 6. Temp Folder
       if (this.showTemp) {
         const tempUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Temp'));
         try {
           await vscode.workspace.fs.stat(tempUri);
-          items.push(new UnityTreeItem(
-            'Temp',
-            tempUri,
-            'folder',
-            vscode.TreeItemCollapsibleState.Collapsed
-          ));
+          items.push(new UnityTreeItem('Temp', tempUri, 'folder', vscode.TreeItemCollapsibleState.Collapsed));
         } catch {}
       }
 
       return items;
     }
 
-    // Virtual Packages Root
     if (element.itemType === 'packageRoot') {
       const packages = await this.packageManager.getResolvedPackages();
       return packages.map(pkg => new UnityTreeItem(
@@ -171,10 +160,89 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       ));
     }
 
-    // Directory Children Traversal
     return this.getDirectoryChildren(element.uri, element.isReadOnly);
   }
 
+  // ─── Solution View Mode ───
+  private async getSolutionChildren(element?: UnityTreeItem): Promise<UnityTreeItem[]> {
+    if (!element) {
+      if (!this.scopeResolver) {
+        return [new UnityTreeItem('Assembly-CSharp', vscode.Uri.file(path.join(this.workspaceRoot, 'Assets')), 'folder', vscode.TreeItemCollapsibleState.Expanded)];
+      }
+
+      const projects = this.scopeResolver.getProjects();
+      return projects.map(proj => {
+        const item = new UnityTreeItem(
+          `${proj.name}${proj.isEditorOnly ? ' (Editor)' : ''}`,
+          vscode.Uri.file(proj.rootDirectory),
+          'folder',
+          vscode.TreeItemCollapsibleState.Collapsed
+        );
+        item.tooltip = `C# Assembly (${proj.type}): ${proj.name}`;
+        item.contextValue = 'solutionAssembly';
+        return item;
+      });
+    }
+
+    // List files belonging to the clicked project/assembly
+    if (element.contextValue === 'solutionAssembly' && this.scopeResolver) {
+      const projects = this.scopeResolver.getProjects();
+      const projName = element.label.replace(' (Editor)', '');
+      const proj = projects.find(p => p.name === projName);
+
+      if (!proj) return [];
+
+      const items: UnityTreeItem[] = [];
+      for (const filePath of proj.filePaths) {
+        const rel = path.relative(this.workspaceRoot, filePath);
+        const item = new UnityTreeItem(
+          path.basename(filePath),
+          vscode.Uri.file(filePath),
+          'asset',
+          vscode.TreeItemCollapsibleState.None
+        );
+        item.description = rel;
+        items.push(item);
+      }
+
+      return items.sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    return this.getDirectoryChildren(element.uri, element.isReadOnly);
+  }
+
+  // ─── All Files View Mode ───
+  private async getAllFilesChildren(element?: UnityTreeItem): Promise<UnityTreeItem[]> {
+    const parentUri = element ? element.uri : vscode.Uri.file(this.workspaceRoot);
+    try {
+      const entries = await vscode.workspace.fs.readDirectory(parentUri);
+      const items: UnityTreeItem[] = [];
+
+      for (const [name, fileType] of entries) {
+        const childUri = vscode.Uri.file(path.join(parentUri.fsPath, name));
+        const isDirectory = fileType === vscode.FileType.Directory;
+
+        items.push(new UnityTreeItem(
+          name,
+          childUri,
+          isDirectory ? 'folder' : 'asset',
+          isDirectory ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+        ));
+      }
+
+      return items.sort((a, b) => {
+        const aIsDir = a.collapsibleState !== vscode.TreeItemCollapsibleState.None;
+        const bIsDir = b.collapsibleState !== vscode.TreeItemCollapsibleState.None;
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  // ─── Directory Children Traversal ───
   private async getDirectoryChildren(parentUri: vscode.Uri, isReadOnly: boolean): Promise<UnityTreeItem[]> {
     try {
       const entries = await vscode.workspace.fs.readDirectory(parentUri);
@@ -200,7 +268,6 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
         ));
       }
 
-      // Sort: Folders first, then assets alphabetically
       return items.sort((a, b) => {
         const aIsDir = a.collapsibleState !== vscode.TreeItemCollapsibleState.None;
         const bIsDir = b.collapsibleState !== vscode.TreeItemCollapsibleState.None;
