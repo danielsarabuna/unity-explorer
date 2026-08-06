@@ -69,9 +69,10 @@ export class ScopeResolver implements vscode.Disposable {
     await this.scanSlnAndCsprojFiles();
 
     // 3. Fallback default assemblies if no .csproj / .asmdef found
-    if (this.projects.size === 0) {
-      this.createFallbackProjects();
-    }
+    this.createFallbackProjects();
+
+    // 4. Pre-scan all C# files to map them to projects immediately
+    await this.populateAllCsFiles();
   }
 
   private async scanAsmdefFiles(): Promise<void> {
@@ -127,24 +128,56 @@ export class ScopeResolver implements vscode.Disposable {
   }
 
   private createFallbackProjects(): void {
-    const defaultRuntime: ProjectInfo = {
-      name: 'Assembly-CSharp',
-      type: 'csproj',
-      rootDirectory: path.join(this.workspaceRoot, 'Assets'),
-      filePaths: new Set<string>(),
-      isEditorOnly: false
-    };
+    if (!this.projects.has('Assembly-CSharp')) {
+      const defaultRuntime: ProjectInfo = {
+        name: 'Assembly-CSharp',
+        type: 'csproj',
+        rootDirectory: path.join(this.workspaceRoot, 'Assets'),
+        filePaths: new Set<string>(),
+        isEditorOnly: false
+      };
+      this.projects.set('Assembly-CSharp', defaultRuntime);
+    }
 
-    const defaultEditor: ProjectInfo = {
-      name: 'Assembly-CSharp-Editor',
-      type: 'csproj',
-      rootDirectory: path.join(this.workspaceRoot, 'Assets'),
-      filePaths: new Set<string>(),
-      isEditorOnly: true
-    };
+    if (!this.projects.has('Assembly-CSharp-Editor')) {
+      const defaultEditor: ProjectInfo = {
+        name: 'Assembly-CSharp-Editor',
+        type: 'csproj',
+        rootDirectory: path.join(this.workspaceRoot, 'Assets'),
+        filePaths: new Set<string>(),
+        isEditorOnly: true
+      };
+      this.projects.set('Assembly-CSharp-Editor', defaultEditor);
+    }
+  }
 
-    this.projects.set('Assembly-CSharp', defaultRuntime);
-    this.projects.set('Assembly-CSharp-Editor', defaultEditor);
+  private async populateAllCsFiles(): Promise<void> {
+    try {
+      const csFiles = await vscode.workspace.findFiles('Assets/**/*.cs', '**/Library/**');
+      for (const uri of csFiles) {
+        this.resolveFileProject(uri.fsPath);
+      }
+    } catch {
+      // Fallback
+      const assetsDir = path.join(this.workspaceRoot, 'Assets');
+      if (fs.existsSync(assetsDir)) {
+        this.scanDirRecursive(assetsDir);
+      }
+    }
+  }
+
+  private scanDirRecursive(dir: string): void {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!['Library', 'Temp', 'Logs', 'obj', 'bin'].includes(entry.name)) {
+          this.scanDirRecursive(fullPath);
+        }
+      } else if (entry.isFile() && entry.name.endsWith('.cs')) {
+        this.resolveFileProject(fullPath);
+      }
+    }
   }
 
   public resolveFileProject(filePath: string): ProjectInfo {
@@ -197,7 +230,9 @@ export class ScopeResolver implements vscode.Disposable {
   }
 
   public getProjects(): ProjectInfo[] {
-    return Array.from(this.projects.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(this.projects.values())
+      .filter(p => p.filePaths.size > 0 || p.type === 'asmdef')
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   public getAvailableScopes(): ScopeDefinition[] {

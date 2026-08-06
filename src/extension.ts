@@ -84,6 +84,108 @@ export async function activate(context: vscode.ExtensionContext) {
       treeDataProvider.refresh();
     }),
 
+    vscode.commands.registerCommand('unityExplorer.toggleVisibility', async () => {
+      const config = vscode.workspace.getConfiguration('unityExplorer');
+      const showMetaFiles = config.get<boolean>('showMetaFiles', false);
+      const showLogs = config.get<boolean>('showLogs', false);
+      const showLibrary = config.get<boolean>('showLibrary', false);
+      const showTemp = config.get<boolean>('showTemp', false);
+      const showPackages = config.get<boolean>('showPackages', true);
+      const showProjectSettings = config.get<boolean>('showProjectSettings', true);
+
+      interface VisibilityQuickPickItem extends vscode.QuickPickItem {
+        key: string;
+      }
+
+      const items: VisibilityQuickPickItem[] = [
+        {
+          label: 'Show .meta Files',
+          description: 'Display raw .meta files in the explorer tree',
+          picked: showMetaFiles,
+          key: 'showMetaFiles'
+        },
+        {
+          label: 'Show Logs Folder',
+          description: 'Display Unity engine Logs/ folder',
+          picked: showLogs,
+          key: 'showLogs'
+        },
+        {
+          label: 'Show Library Folder',
+          description: 'Display Unity cache Library/ folder',
+          picked: showLibrary,
+          key: 'showLibrary'
+        },
+        {
+          label: 'Show Temp Folder',
+          description: 'Display Unity build Temp/ folder',
+          picked: showTemp,
+          key: 'showTemp'
+        },
+        {
+          label: 'Show Packages',
+          description: 'Display Unity Package Manager packages',
+          picked: showPackages,
+          key: 'showPackages'
+        },
+        {
+          label: 'Show ProjectSettings',
+          description: 'Display Unity engine settings folder',
+          picked: showProjectSettings,
+          key: 'showProjectSettings'
+        }
+      ];
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Toggle Explorer Visibility Settings',
+        canPickMany: true
+      });
+
+      if (!selected) return;
+
+      const selectedKeys = new Set(selected.map(item => item.key));
+      for (const item of items) {
+        const newValue = selectedKeys.has(item.key);
+        await config.update(item.key, newValue, vscode.ConfigurationTarget.Global);
+      }
+      treeDataProvider.refresh();
+    }),
+
+    vscode.commands.registerCommand('unityExplorer.switchViewMode', async () => {
+      const currentMode = treeDataProvider.getViewMode();
+      const selected = await vscode.window.showQuickPick(
+        [
+          {
+            label: `${currentMode === 'unity' ? '$(check)' : '$(blank)'} Unity View`,
+            description: 'Clean Unity domain tree (Assets, Packages, Settings)',
+            mode: 'unity'
+          },
+          {
+            label: `${currentMode === 'solution' ? '$(check)' : '$(blank)'} Solution View`,
+            description: 'C# Assemblies (.asmdef & .csproj) & file mappings',
+            mode: 'solution'
+          },
+          {
+            label: `${currentMode === 'allFiles' ? '$(check)' : '$(blank)'} All Files View`,
+            description: 'Raw workspace directory tree',
+            mode: 'allFiles'
+          }
+        ],
+        { placeHolder: 'Select View Mode' }
+      );
+
+      if (!selected) return;
+
+      treeDataProvider.setViewMode(selected.mode as any);
+      if (selected.mode === 'unity') {
+        treeView.title = 'Unity Project';
+      } else if (selected.mode === 'solution') {
+        treeView.title = 'C# Solution View';
+      } else {
+        treeView.title = 'All Workspace Files';
+      }
+    }),
+
     vscode.commands.registerCommand('unityExplorer.createScript', async (item?: UnityTreeItem) => {
       const targetDir = getTargetDir(item, workspaceRoot);
 
