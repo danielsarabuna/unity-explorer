@@ -19,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
   if (!workspaceRoot) return;
 
   await detectAndSetUnityContext(workspaceRoot);
+  await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
 
   const scopeResolver = new ScopeResolver(workspaceRoot);
   const metaSyncEngine = new MetaSyncEngine();
