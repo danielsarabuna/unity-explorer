@@ -2,8 +2,8 @@
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
   "description": "Unity Asset Tree, Meta File Sync & Rider-style Search Engine for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.2.6",
-  "publisher": "danielsarabuna",
+  "version": "1.2.9",
+  "publisher": "antigravity",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -50,11 +50,16 @@
       ]
     },
     "views": {
+      "explorer": [
+        {
+          "id": "unityExplorerExplorerView",
+          "name": "Unity Explorer"
+        }
+      ],
       "unityExplorerContainer": [
         {
           "id": "unityExplorer",
-          "name": "Unity Project",
-          "type": "tree"
+          "name": "Unity Project"
         }
       ]
     },
@@ -187,69 +192,69 @@
       "view/title": [
         {
           "command": "unityExplorer.searchEverywhere",
-          "when": "view == unityExplorer",
+          "when": "view == unityExplorer || view == unityExplorerExplorerView",
           "group": "navigation@1"
         },
         {
           "command": "unityExplorer.toggleVisibility",
-          "when": "view == unityExplorer",
+          "when": "view == unityExplorer || view == unityExplorerExplorerView",
           "group": "navigation@2"
         },
         {
           "command": "unityExplorer.switchViewMode",
-          "when": "view == unityExplorer",
+          "when": "view == unityExplorer || view == unityExplorerExplorerView",
           "group": "navigation@3"
         },
         {
           "command": "unityExplorer.createScript",
-          "when": "view == unityExplorer",
+          "when": "view == unityExplorer || view == unityExplorerExplorerView",
           "group": "navigation@4"
         },
         {
           "command": "unityExplorer.refresh",
-          "when": "view == unityExplorer",
+          "when": "view == unityExplorer || view == unityExplorerExplorerView",
           "group": "navigation@5"
         }
       ],
       "view/item/context": [
         {
           "command": "unityExplorer.createScript",
-          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "1_create@1"
         },
         {
           "command": "unityExplorer.createFolder",
-          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "1_create@2"
         },
         {
           "command": "unityExplorer.createShader",
-          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "1_create@3"
         },
         {
           "command": "unityExplorer.createMaterial",
-          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "1_create@4"
         },
         {
           "command": "unityExplorer.createAsmdef",
-          "when": "view == unityExplorer && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "1_create@5"
         },
         {
           "command": "unityExplorer.rename",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityAsset || viewItem == unityFolder)",
           "group": "2_modify@1"
         },
         {
           "command": "unityExplorer.delete",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityAsset || viewItem == unityFolder)",
           "group": "2_modify@2"
         },
         {
           "command": "unityExplorer.revealInFinder",
-          "when": "view == unityExplorer && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityAssetsRoot)",
+          "when": "(view == unityExplorer || view == unityExplorerExplorerView) && (viewItem == unityAsset || viewItem == unityFolder || viewItem == unityAssetsRoot)",
           "group": "3_utility@1"
         }
       ]

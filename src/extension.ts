@@ -29,7 +29,13 @@ export async function activate(context: vscode.ExtensionContext) {
     canSelectMany: true
   });
 
-  context.subscriptions.push(treeView);
+  const explorerView = vscode.window.createTreeView('unityExplorerExplorerView', {
+    treeDataProvider,
+    dragAndDropController,
+    canSelectMany: true
+  });
+
+  context.subscriptions.push(treeView, explorerView);
 
   let searchPanel: SearchPanelProvider | undefined;
 

@@ -30,6 +30,7 @@ export class UnityTreeItem extends vscode.TreeItem {
   ) {
     super(label, collapsibleState);
     
+    this.id = `${itemType}:${uri.fsPath}`;
     this.resourceUri = uri;
     this.tooltip = `${uri.fsPath}${isReadOnly ? ' (Read-Only Package Asset)' : ''}`;
     
@@ -66,7 +67,7 @@ export class UnityTreeItem extends vscode.TreeItem {
 
   private deriveIcon(): vscode.ThemeIcon {
     if (this.itemType === 'assetsRoot') {
-      return new vscode.ThemeIcon('root-folder');
+      return new vscode.ThemeIcon('folder-opened');
     }
     if (this.itemType === 'packageRoot') {
       return new vscode.ThemeIcon('archive');

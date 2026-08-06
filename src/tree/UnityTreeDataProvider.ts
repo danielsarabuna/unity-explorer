@@ -81,7 +81,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
   async getChildren(element?: UnityTreeItem): Promise<UnityTreeItem[]> {
     if (!this.workspaceRoot) {
       const fallback = new UnityTreeItem(
-        'No Unity Workspace Opened',
+        'No Workspace Opened',
         vscode.Uri.file('/'),
         'folder',
         vscode.TreeItemCollapsibleState.None
@@ -110,10 +110,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       const items: UnityTreeItem[] = [];
       
       const assetsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Assets'));
-      try {
-        await vscode.workspace.fs.stat(assetsUri);
-        items.push(new UnityTreeItem('Assets', assetsUri, 'assetsRoot', vscode.TreeItemCollapsibleState.Expanded));
-      } catch {}
+      items.push(new UnityTreeItem('Assets', assetsUri, 'assetsRoot', vscode.TreeItemCollapsibleState.Expanded));
 
       if (this.showPackages) {
         const packagesUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Packages'));
@@ -122,10 +119,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
 
       if (this.showProjectSettings) {
         const settingsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'ProjectSettings'));
-        try {
-          await vscode.workspace.fs.stat(settingsUri);
-          items.push(new UnityTreeItem('ProjectSettings', settingsUri, 'projectSettingsRoot', vscode.TreeItemCollapsibleState.Collapsed));
-        } catch {}
+        items.push(new UnityTreeItem('ProjectSettings', settingsUri, 'projectSettingsRoot', vscode.TreeItemCollapsibleState.Collapsed));
       }
 
       if (this.showLibrary) {
@@ -178,6 +172,10 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       }
 
       const projects = this.scopeResolver.getProjects();
+      if (projects.length === 0) {
+        return [new UnityTreeItem('Assembly-CSharp', vscode.Uri.file(path.join(this.workspaceRoot, 'Assets')), 'folder', vscode.TreeItemCollapsibleState.Expanded)];
+      }
+
       return projects.map(proj => {
         const item = new UnityTreeItem(
           `${proj.name}${proj.isEditorOnly ? ' (Editor)' : ''}`,
