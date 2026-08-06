@@ -2,12 +2,12 @@
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
   "description": "Unity Asset Tree, Meta File Sync & Rider-style Search Engine for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.2.2",
-  "publisher": "antigravity",
+  "version": "1.2.3",
+  "publisher": "danielsarabuna",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/antigravity/unity-explorer"
+    "url": "https://github.com/danielsarabuna/unity-explorer"
   },
   "engines": {
     "vscode": "^1.80.0"
@@ -188,27 +188,27 @@
       "view/title": [
         {
           "command": "unityExplorer.searchEverywhere",
-          "when": "view == unityExplorer && unityExplorer:active",
+          "when": "view == unityExplorer",
           "group": "navigation@1"
         },
         {
           "command": "unityExplorer.toggleVisibility",
-          "when": "view == unityExplorer && unityExplorer:active",
+          "when": "view == unityExplorer",
           "group": "navigation@2"
         },
         {
           "command": "unityExplorer.switchViewMode",
-          "when": "view == unityExplorer && unityExplorer:active",
+          "when": "view == unityExplorer",
           "group": "navigation@3"
         },
         {
           "command": "unityExplorer.createScript",
-          "when": "view == unityExplorer && unityExplorer:active",
+          "when": "view == unityExplorer",
           "group": "navigation@4"
         },
         {
           "command": "unityExplorer.refresh",
-          "when": "view == unityExplorer && unityExplorer:active",
+          "when": "view == unityExplorer",
           "group": "navigation@5"
         }
       ],
