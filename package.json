@@ -2,7 +2,7 @@
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
   "description": "Unity Asset Tree, Meta File Sync & Package Manager for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "antigravity",
   "license": "MIT",
   "repository": {
@@ -67,6 +67,26 @@
           "default": true,
           "description": "Automatically rename, move, and delete .meta files alongside assets."
         },
+        "unityExplorer.showMetaFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display raw .meta files in the explorer tree."
+        },
+        "unityExplorer.showLogs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Unity engine Logs/ folder."
+        },
+        "unityExplorer.showLibrary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Unity cache Library/ folder."
+        },
+        "unityExplorer.showTemp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display Unity build Temp/ folder."
+        },
         "unityExplorer.showPackages": {
           "type": "boolean",
           "default": true,
@@ -118,8 +138,18 @@
       },
       {
         "command": "unityExplorer.refresh",
-        "title": "Refresh Unity Explorer",
+        "title": "Refresh Explorer",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "unityExplorer.toggleVisibility",
+        "title": "Toggle Explorer Visibility Settings",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "unityExplorer.switchViewMode",
+        "title": "Switch View Mode",
+        "icon": "$(arrow-swap)"
       },
       {
         "command": "unityExplorer.createScript",
@@ -157,11 +187,6 @@
         "icon": "$(trash)"
       },
       {
-        "command": "unityExplorer.switchViewMode",
-        "title": "Switch View Mode",
-        "icon": "$(arrow-swap)"
-      },
-      {
         "command": "unityExplorer.revealInFinder",
         "title": "Reveal in Finder / Explorer",
         "icon": "$(folder-opened)"
@@ -180,22 +205,27 @@
         {
           "command": "unityExplorer.searchEverywhere",
           "when": "view == unityExplorer",
-          "group": "navigation@0"
+          "group": "navigation@1"
         },
         {
           "command": "unityExplorer.refresh",
           "when": "view == unityExplorer",
-          "group": "navigation@1"
+          "group": "navigation@2"
+        },
+        {
+          "command": "unityExplorer.toggleVisibility",
+          "when": "view == unityExplorer",
+          "group": "navigation@3"
         },
         {
           "command": "unityExplorer.switchViewMode",
           "when": "view == unityExplorer",
-          "group": "navigation@2"
+          "group": "navigation@4"
         },
         {
           "command": "unityExplorer.createScript",
           "when": "view == unityExplorer",
-          "group": "navigation@3"
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [

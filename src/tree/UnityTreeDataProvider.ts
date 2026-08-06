@@ -10,7 +10,13 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
     this._onDidChangeTreeData.event;
 
   private refreshDebounceTimer?: NodeJS.Timeout;
-  private excludedPatterns: string[] = [];
+  
+  private showMetaFiles: boolean = false;
+  private showLogs: boolean = false;
+  private showLibrary: boolean = false;
+  private showTemp: boolean = false;
+  private showPackages: boolean = true;
+  private showProjectSettings: boolean = true;
 
   constructor(
     private readonly workspaceRoot: string,
@@ -25,17 +31,23 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
     });
   }
 
+  public getExcludedPatterns(): string[] {
+    const excluded: string[] = ['**/.git/**', '**/obj/**', '**/bin/**'];
+    if (!this.showMetaFiles) excluded.push('**/*.meta');
+    if (!this.showLibrary) excluded.push('**/Library/**');
+    if (!this.showTemp) excluded.push('**/Temp/**');
+    if (!this.showLogs) excluded.push('**/Logs/**');
+    return excluded;
+  }
+
   private loadConfiguration(): void {
     const config = vscode.workspace.getConfiguration('unityExplorer');
-    this.excludedPatterns = config.get<string[]>('excludedPatterns', [
-      '**/*.meta', 
-      '**/.git/**', 
-      '**/Library/**', 
-      '**/Temp/**',
-      '**/Logs/**',
-      '**/obj/**',
-      '**/bin/**'
-    ]);
+    this.showMetaFiles = config.get<boolean>('showMetaFiles', false);
+    this.showLogs = config.get<boolean>('showLogs', false);
+    this.showLibrary = config.get<boolean>('showLibrary', false);
+    this.showTemp = config.get<boolean>('showTemp', false);
+    this.showPackages = config.get<boolean>('showPackages', true);
+    this.showProjectSettings = config.get<boolean>('showProjectSettings', true);
   }
 
   public refresh(item?: UnityTreeItem): void {
@@ -56,7 +68,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       return [];
     }
 
-    // Root nodes: Assets directory + Packages + ProjectSettings
+    // Root nodes: Assets + Packages + ProjectSettings + optional (Library, Logs, Temp)
     if (!element) {
       const items: UnityTreeItem[] = [];
       
@@ -75,8 +87,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       }
 
       // 2. Packages Folder
-      const config = vscode.workspace.getConfiguration('unityExplorer');
-      if (config.get<boolean>('showPackages', true)) {
+      if (this.showPackages) {
         const packagesUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Packages'));
         items.push(new UnityTreeItem(
           'Packages',
@@ -87,7 +98,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       }
 
       // 3. ProjectSettings Folder
-      if (config.get<boolean>('showProjectSettings', true)) {
+      if (this.showProjectSettings) {
         const settingsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'ProjectSettings'));
         try {
           await vscode.workspace.fs.stat(settingsUri);
@@ -100,6 +111,48 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
         } catch {
           // ProjectSettings missing
         }
+      }
+
+      // 4. Library Folder
+      if (this.showLibrary) {
+        const libraryUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Library'));
+        try {
+          await vscode.workspace.fs.stat(libraryUri);
+          items.push(new UnityTreeItem(
+            'Library',
+            libraryUri,
+            'folder',
+            vscode.TreeItemCollapsibleState.Collapsed
+          ));
+        } catch {}
+      }
+
+      // 5. Logs Folder
+      if (this.showLogs) {
+        const logsUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Logs'));
+        try {
+          await vscode.workspace.fs.stat(logsUri);
+          items.push(new UnityTreeItem(
+            'Logs',
+            logsUri,
+            'folder',
+            vscode.TreeItemCollapsibleState.Collapsed
+          ));
+        } catch {}
+      }
+
+      // 6. Temp Folder
+      if (this.showTemp) {
+        const tempUri = vscode.Uri.file(path.join(this.workspaceRoot, 'Temp'));
+        try {
+          await vscode.workspace.fs.stat(tempUri);
+          items.push(new UnityTreeItem(
+            'Temp',
+            tempUri,
+            'folder',
+            vscode.TreeItemCollapsibleState.Collapsed
+          ));
+        } catch {}
       }
 
       return items;
@@ -128,8 +181,7 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
       const items: UnityTreeItem[] = [];
 
       for (const [name, fileType] of entries) {
-        // Skip .meta files and matches against excluded names
-        if (name.endsWith('.meta') || this.isExcluded(name)) {
+        if (this.isExcluded(name)) {
           continue;
         }
 
@@ -162,10 +214,21 @@ export class UnityTreeDataProvider implements vscode.TreeDataProvider<UnityTreeI
   }
 
   private isExcluded(name: string): boolean {
+    if (name.endsWith('.meta')) {
+      return !this.showMetaFiles;
+    }
+    if (name === 'Library') {
+      return !this.showLibrary;
+    }
+    if (name === 'Logs') {
+      return !this.showLogs;
+    }
+    if (name === 'Temp') {
+      return !this.showTemp;
+    }
     if (name.startsWith('.') && name !== '.gitignore') {
       return true;
     }
-    const ignoredNames = ['Library', 'Temp', 'Logs', 'obj', 'bin'];
-    return ignoredNames.includes(name);
+    return ['obj', 'bin'].includes(name);
   }
 }
