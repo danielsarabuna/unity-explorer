@@ -2,7 +2,7 @@
   "name": "unity-explorer",
   "displayName": "Unity Explorer",
   "description": "Unity Asset Tree, Meta File Sync & Rider-style Search Engine for Antigravity IDE, VS Code, and Cursor",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "publisher": "danielsarabuna",
   "license": "MIT",
   "repository": {

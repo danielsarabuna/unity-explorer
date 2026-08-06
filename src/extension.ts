@@ -29,28 +29,32 @@ export async function activate(context: vscode.ExtensionContext) {
     canSelectMany: true
   });
 
-  // Search Engine Initialization
-  const symbolIndexer = workspaceRoot && scopeResolver ? new CSharpSymbolIndexer(workspaceRoot, scopeResolver) : undefined;
-  const fileIndexer = workspaceRoot ? new FileIndexer(workspaceRoot, []) : undefined;
-  const searchEngine = (symbolIndexer && fileIndexer && scopeResolver) ? new SearchEngine(symbolIndexer, fileIndexer, scopeResolver) : undefined;
-  const searchPanel = searchEngine ? new SearchPanelProvider(context.extensionUri, searchEngine, symbolIndexer!, scopeResolver!) : undefined;
+  context.subscriptions.push(treeView);
 
-  if (workspaceRoot) {
+  let searchPanel: SearchPanelProvider | undefined;
+
+  if (workspaceRoot && scopeResolver) {
     await detectAndSetUnityContext(workspaceRoot);
     await vscode.commands.executeCommand('setContext', 'unityExplorer:active', true);
 
-    if (scopeResolver && symbolIndexer && fileIndexer) {
-      vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Window, title: 'Unity: Indexing C# symbols…' },
-        async () => {
-          await scopeResolver.parseSolution();
-          await symbolIndexer.buildFullIndex(false);
-          await fileIndexer.buildIndex(false);
-        }
-      );
-      setupFileSystemWatcher(context, workspaceRoot, treeDataProvider);
-      setupSearchIndexWatcher(context, workspaceRoot, symbolIndexer, fileIndexer);
-    }
+    const symbolIndexer = new CSharpSymbolIndexer(workspaceRoot, scopeResolver);
+    const fileIndexer = new FileIndexer(workspaceRoot, []);
+    const searchEngine = new SearchEngine(symbolIndexer, fileIndexer, scopeResolver);
+    searchPanel = new SearchPanelProvider(context.extensionUri, searchEngine, symbolIndexer, scopeResolver);
+
+    context.subscriptions.push(searchPanel);
+
+    vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Window, title: 'Unity: Indexing C# symbols…' },
+      async () => {
+        await scopeResolver.parseSolution();
+        await symbolIndexer.buildFullIndex(false);
+        await fileIndexer.buildIndex(false);
+      }
+    );
+
+    setupFileSystemWatcher(context, workspaceRoot, treeDataProvider);
+    setupSearchIndexWatcher(context, workspaceRoot, symbolIndexer, fileIndexer);
   }
 
   // Register WillRenameFiles handler for external / editor file renames
@@ -74,9 +78,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Register Commands
   context.subscriptions.push(
-    treeView,
-    searchPanel,
-
     vscode.commands.registerCommand('unityExplorer.searchEverywhere', () => searchPanel?.show()),
     vscode.commands.registerCommand('unityExplorer.searchTypes', () => searchPanel?.show('types')),
     vscode.commands.registerCommand('unityExplorer.searchMembers', () => searchPanel?.show('members')),
@@ -282,50 +283,50 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('unityExplorer.rename', async (item?: UnityTreeItem) => {
-      if (!item || item.isReadOnly) return;
+      if (!item) return;
 
-      const currentName = path.basename(item.uri.fsPath);
       const newName = await vscode.window.showInputBox({
-        prompt: 'Enter new name',
-        value: currentName
+        prompt: 'Enter New Name',
+        value: path.basename(item.uri.fsPath)
       });
 
-      if (!newName || newName === currentName) return;
+      if (!newName || newName === path.basename(item.uri.fsPath)) return;
 
-      await metaSyncEngine.renameAsset(item.uri, newName);
+      const newUri = vscode.Uri.file(path.join(path.dirname(item.uri.fsPath), newName));
+      await metaSyncEngine.renameAsset(item.uri, newUri);
       treeDataProvider.refresh();
     }),
 
     vscode.commands.registerCommand('unityExplorer.delete', async (item?: UnityTreeItem) => {
-      if (!item || item.isReadOnly) return;
+      if (!item) return;
 
       const confirm = await vscode.window.showWarningMessage(
-        `Are you sure you want to delete '${item.label}' and its associated .meta file?`,
+        `Are you sure you want to delete '${path.basename(item.uri.fsPath)}' and its .meta file?`,
         { modal: true },
         'Delete'
       );
 
       if (confirm === 'Delete') {
-        await metaSyncEngine.deleteAssets([item.uri]);
+        const isDirectory = item.collapsibleState !== vscode.TreeItemCollapsibleState.None;
+        await metaSyncEngine.deleteAsset(item.uri, isDirectory);
         treeDataProvider.refresh();
       }
     }),
 
     vscode.commands.registerCommand('unityExplorer.revealInFinder', async (item?: UnityTreeItem) => {
-      const targetUri = item ? item.uri : vscode.Uri.file(path.join(workspaceRoot, 'Assets'));
-      await vscode.commands.executeCommand('revealFileInOS', targetUri);
+      const uri = item ? item.uri : vscode.Uri.file(workspaceRoot || process.cwd());
+      await vscode.commands.executeCommand('revealFileInOS', uri);
     })
   );
 }
 
+export function deactivate() {}
+
 function getTargetDir(item: UnityTreeItem | undefined, workspaceRoot: string): string {
   if (item) {
-    if (item.itemType === 'folder' || item.itemType === 'assetsRoot') {
-      return item.uri.fsPath;
-    }
-    return path.dirname(item.uri.fsPath);
+    const isDirectory = item.collapsibleState !== vscode.TreeItemCollapsibleState.None || 
+      ['folder', 'assetsRoot', 'packageFolder', 'projectSettingsRoot'].includes(item.itemType);
+    return isDirectory ? item.uri.fsPath : path.dirname(item.uri.fsPath);
   }
   return path.join(workspaceRoot, 'Assets');
 }
-
-export function deactivate() {}
